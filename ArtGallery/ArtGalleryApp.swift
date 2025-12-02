@@ -11,7 +11,7 @@ import SwiftUI
 struct ArtGalleryApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ArtworkListView()
         }
     }
 }
