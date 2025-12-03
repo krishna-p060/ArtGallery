@@ -59,25 +59,38 @@ struct CachedAsyncImage<Content: View, Placeholder: View>: View {
             return
         }
         
-        // Download image
+        // Download image with proper headers
         var request = URLRequest(url: url)
         request.timeoutInterval = 30
-        request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("https://www.artic.edu", forHTTPHeaderField: "Referer")
         
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            DispatchQueue.main.async {
-                isLoading = false
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(for: request)
                 
-                guard error == nil,
-                      let data = data,
-                      let downloadedImage = UIImage(data: data) else {
+                guard let downloadedImage = UIImage(data: data) else {
+                    await MainActor.run {
+                        isLoading = false
+                    }
                     return
                 }
                 
+                // Cache the image
                 ImageCache.shared.set(downloadedImage, forKey: urlString)
-                self.image = downloadedImage
+                
+                // Update UI on main thread
+                await MainActor.run {
+                    self.image = downloadedImage
+                    self.isLoading = false
+                }
+            } catch {
+                print("Failed to load image from \(url): \(error.localizedDescription)")
+                await MainActor.run {
+                    isLoading = false
+                }
             }
-        }.resume()
+        }
     }
     
     private func loadBase64Image(_ dataString: String) {

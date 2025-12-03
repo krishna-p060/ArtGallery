@@ -76,7 +76,6 @@ struct Artwork: Codable, Identifiable, Hashable {
     
     // Computed property to get full image URL
     var imageURL: String? {
-        // First try to get the thumbnail LQIP (Low Quality Image Placeholder)
         // These are base64 encoded and work without Cloudflare issues
         if let lqip = thumbnail?.lqip, lqip.starts(with: "data:image") {
             return lqip
